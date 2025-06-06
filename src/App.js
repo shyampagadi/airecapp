@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Amplify } from 'aws-amplify';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { SnackbarProvider } from 'notistack';
 
 // Components
 import Header from './components/layout/Header';
@@ -10,6 +10,9 @@ import Login from './components/auth/Login';
 import Dashboard from './components/jd/Dashboard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ApiTest from './ApiTest';
+
+// Custom theme
+import theme from './theme';
 
 // AWS Configuration - direct import
 import config from './config';
@@ -87,17 +90,33 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <div className="App d-flex flex-column min-vh-100">
-        <Header />
-        <main className="flex-grow-1 py-3">
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <SnackbarProvider maxSnack={3} autoHideDuration={4000} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<Login />} />
             
-            {/* Protected Routes */}
+            {/* Protected Routes with Layout */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
+              {/* Routes with Header and Layout */}
+              <Route path="/" element={
+                <div className="app-container">
+                  <Header />
+                  <main className="main-content">
+                    <Navigate to="/dashboard" replace />
+                  </main>
+                </div>
+              } />
+              
+              <Route path="/dashboard" element={
+                <div className="app-container">
+                  <Header />
+                  <main className="main-content">
+                    <Dashboard />
+                  </main>
+                </div>
+              } />
             </Route>
             
             {/* Test Route - Not Protected */}
@@ -106,14 +125,9 @@ function App() {
             {/* Catch all - redirect to dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-        </main>
-        <footer className="py-3 bg-light mt-auto">
-          <div className="container text-center">
-            <p className="text-muted mb-0">JD Search Application &copy; {new Date().getFullYear()}</p>
-          </div>
-        </footer>
-      </div>
-    </BrowserRouter>
+        </BrowserRouter>
+      </SnackbarProvider>
+    </ThemeProvider>
   );
 }
 
