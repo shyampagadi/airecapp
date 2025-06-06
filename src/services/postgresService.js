@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Auth } from 'aws-amplify';
-import { API_GATEWAY, POSTGRES_CONFIG } from '../config/appConfig';
+import { API_GATEWAY } from '../config/appConfig';
 
 // API Gateway URL for PostgreSQL data from config
 const POSTGRES_API_URL = API_GATEWAY.postgresEndpoint;

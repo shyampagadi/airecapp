@@ -1,6 +1,6 @@
 import { API, Auth } from 'aws-amplify';
 import axios from 'axios';
-import { API_GATEWAY, OPENSEARCH_CONFIG } from '../config/appConfig';
+import { API_GATEWAY } from '../config/appConfig';
 
 // Get API Gateway URL from config
 const API_GATEWAY_URL = API_GATEWAY.jdSearchEndpoint;

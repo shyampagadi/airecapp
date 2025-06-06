@@ -16,31 +16,23 @@ import {
   Paper,
   Avatar,
   LinearProgress,
-  Button,
   IconButton,
-  Stack,
-  Divider,
   TablePagination,
   CircularProgress,
-  Tooltip
+  Tooltip,
+  Divider
 } from '@mui/material';
 import {
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  PersonOutline as PersonIcon,
   Visibility as VisibilityIcon,
   GetApp as DownloadIcon,
   Email as EmailIcon,
-  ArrowForward as ArrowForwardIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationIcon,
-  School as SchoolIcon,
-  Work as WorkIcon
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon
 } from '@mui/icons-material';
 import { getCandidateDataById } from '../../services/postgresService';
 import ResumeViewer from '../resume/ResumeViewer';
 
-const ResultsDisplay = ({ results, isLoading }) => {
+const ResultsDisplay = ({ results, jobInfo, skillGapAnalysis, isLoading }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -96,6 +88,43 @@ const ResultsDisplay = ({ results, isLoading }) => {
     }
   };
 
+  // Calculate top skills from all resumes
+  const getTopSkills = () => {
+    if (!results || !Array.isArray(results) || results.length === 0) return [];
+    
+    // Count occurrence of each skill
+    const skillCount = {};
+    results.forEach(result => {
+      if (result.matching_skills) {
+        result.matching_skills.forEach(skill => {
+          skillCount[skill] = (skillCount[skill] || 0) + 1;
+        });
+      }
+    });
+    
+    // Convert to array, sort by count, and take top 5
+    return Object.entries(skillCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([skill]) => skill);
+  };
+  
+  // Calculate experience range
+  const getExperienceRange = () => {
+    if (!results || !Array.isArray(results) || results.length === 0) return '0-0 years';
+    
+    const experiences = results
+      .map(result => Number(result.experience))
+      .filter(years => !isNaN(years));
+    
+    if (experiences.length === 0) return 'N/A';
+    
+    const min = Math.min(...experiences);
+    const max = Math.max(...experiences);
+    
+    return `${min}-${max} years`;
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -122,9 +151,47 @@ const ResultsDisplay = ({ results, isLoading }) => {
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
+  
+  // Get top skills
+  const topSkills = getTopSkills();
 
   return (
     <Box>
+      {jobInfo && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              {jobInfo.title || 'Job Details'}
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Required Experience:
+                </Typography>
+                <Typography variant="body1">
+                  {jobInfo.required_experience ? `${jobInfo.required_experience} years` : 'Not specified'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Required Skills:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                  {jobInfo.required_skills ? 
+                    jobInfo.required_skills.map((skill, idx) => (
+                      <Chip key={idx} label={skill} size="small" color="primary" variant="outlined" />
+                    ))
+                    :
+                    <Typography variant="body2">No specific skills listed</Typography>
+                  }
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+      
       <Typography variant="h6" gutterBottom>
         {results.length} matching resumes found
       </Typography>
@@ -137,7 +204,7 @@ const ResultsDisplay = ({ results, isLoading }) => {
                 Average Match Score
               </Typography>
               <Typography variant="h4">
-                {(results.reduce((sum, result) => sum + result.score, 0) / results.length).toFixed(1)}%
+                {(results.reduce((sum, result) => sum + (result.score || 0), 0) / results.length).toFixed(1)}%
               </Typography>
             </CardContent>
           </Card>
@@ -149,10 +216,9 @@ const ResultsDisplay = ({ results, isLoading }) => {
                 Top Skills
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                {/* This is placeholder - in a real app, you'd aggregate skills from results */}
-                <Chip label="JavaScript" size="small" />
-                <Chip label="React" size="small" />
-                <Chip label="AWS" size="small" />
+                {topSkills.map((skill, index) => (
+                  <Chip key={index} label={skill} size="small" />
+                ))}
               </Box>
             </CardContent>
           </Card>
@@ -164,12 +230,56 @@ const ResultsDisplay = ({ results, isLoading }) => {
                 Experience Range
               </Typography>
               <Typography variant="h4">
-                1-8 years
+                {getExperienceRange()}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+      
+      {skillGapAnalysis && skillGapAnalysis.length > 0 && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Skill Gap Analysis
+            </Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Skill</TableCell>
+                    <TableCell>Missing Count</TableCell>
+                    <TableCell>Missing %</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {skillGapAnalysis.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{item.skill}</TableCell>
+                      <TableCell>{item.missing_count}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box sx={{ width: '100px', mr: 1 }}>
+                            <LinearProgress 
+                              variant="determinate" 
+                              value={item.missing_percent} 
+                              color={item.missing_percent > 70 ? "error" : item.missing_percent > 40 ? "warning" : "success"} 
+                              sx={{ height: 8, borderRadius: 5 }}
+                            />
+                          </Box>
+                          <Typography variant="body2">
+                            {item.missing_percent.toFixed(1)}%
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      )}
       
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }}>
@@ -201,6 +311,11 @@ const ResultsDisplay = ({ results, isLoading }) => {
                         <Typography variant="body2" color="text.secondary">
                           {candidateData?.email || result.resume_id}
                         </Typography>
+                        {result.positions && result.positions.length > 0 && (
+                          <Typography variant="body2" color="text.secondary">
+                            {result.positions[0]}
+                          </Typography>
+                        )}
                       </Box>
                     </Box>
                   </TableCell>
@@ -221,18 +336,32 @@ const ResultsDisplay = ({ results, isLoading }) => {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {result.skills && result.skills.slice(0, 3).map((skill, index) => (
+                      {result.matching_skills && result.matching_skills.slice(0, 3).map((skill, index) => (
                         <Chip 
                           key={index} 
                           label={skill} 
                           size="small" 
+                          color="primary"
                           variant="outlined"
                         />
                       ))}
-                      {result.skills && result.skills.length > 3 && (
-                        <Tooltip title={result.skills.slice(3).join(', ')}>
+                      {result.missing_skills && result.missing_skills.slice(0, 2).map((skill, index) => (
+                        <Chip 
+                          key={`missing-${index}`} 
+                          label={skill} 
+                          size="small" 
+                          color="error"
+                          variant="outlined"
+                        />
+                      ))}
+                      {((result.matching_skills && result.matching_skills.length > 3) || 
+                       (result.missing_skills && result.missing_skills.length > 2)) && (
+                        <Tooltip title={[
+                          ...(result.matching_skills || []).slice(3).map(s => `✓ ${s}`),
+                          ...(result.missing_skills || []).slice(2).map(s => `✗ ${s}`)
+                        ].join(', ')}>
                           <Chip 
-                            label={`+${result.skills.length - 3}`} 
+                            label={`+${(result.matching_skills?.length || 0) - 3 + (result.missing_skills?.length || 0) - 2}`} 
                             size="small" 
                             variant="outlined"
                           />
@@ -241,7 +370,7 @@ const ResultsDisplay = ({ results, isLoading }) => {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    {result.experience || 'N/A'}
+                    {result.experience ? `${result.experience} years` : 'N/A'}
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title="View Resume">
@@ -287,14 +416,6 @@ const ResultsDisplay = ({ results, isLoading }) => {
       />
     </Box>
   );
-};
-
-// Helper function to get color based on match score
-const getScoreColor = (score) => {
-  if (score >= 0.8) return { name: 'success', light: '#c8e6c9' };
-  if (score >= 0.6) return { name: 'primary', light: '#bbdefb' };
-  if (score >= 0.4) return { name: 'warning', light: '#ffecb3' };
-  return { name: 'error', light: '#ffcdd2' };
 };
 
 export default ResultsDisplay; 

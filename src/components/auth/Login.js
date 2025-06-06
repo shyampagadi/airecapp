@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Auth } from 'aws-amplify';
+import { signIn } from '../../services/authService';
 import { 
   Box, 
   TextField, 
@@ -12,7 +12,8 @@ import {
   CircularProgress,
   Grid,
   InputAdornment,
-  IconButton
+  IconButton,
+  Alert
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -77,9 +78,9 @@ const Login = () => {
     setError('');
     
     try {
-      await Auth.signIn(username, password);
-      console.log('Login successful');
-      navigate('/dashboard');
+      await signIn(username, password);
+        console.log('Login successful');
+        navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message || 'Failed to login. Please check your credentials.');
@@ -159,9 +160,9 @@ const Login = () => {
               name="username"
               autoComplete="email"
               variant="outlined"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -179,9 +180,9 @@ const Login = () => {
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               variant="outlined"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -205,12 +206,12 @@ const Login = () => {
                 Forgot password?
               </Link>
             </Box>
-            <Button
-              type="submit"
+                  <Button
+                    type="submit"
               fullWidth
               variant="contained"
               size="large"
-              disabled={loading}
+                    disabled={loading}
               sx={{ 
                 py: 1.5, 
                 mt: 1, 
@@ -221,7 +222,7 @@ const Login = () => {
               }}
             >
               {loading ? <CircularProgress size={24} /> : 'SIGN IN'}
-            </Button>
+                  </Button>
           </form>
 
           <Box sx={{ mt: 4, textAlign: 'center' }}>

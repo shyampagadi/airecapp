@@ -7,16 +7,13 @@ import {
   CircularProgress, 
   Paper,
   FormControl,
-  FormHelperText,
   Grid,
   Chip,
   MenuItem,
   Select,
   OutlinedInput,
   InputLabel,
-  Slider,
-  TextField,
-  Divider
+  Slider
 } from '@mui/material';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -62,7 +59,6 @@ const JDForm = ({ onResults }) => {
   const [selectedSkills, setSelectedSkills] = useState(['Java', 'Spring Boot']);
   const [experienceRange, setExperienceRange] = useState([0, 10]);
   const [matchThreshold, setMatchThreshold] = useState(60);
-  const [advancedMode, setAdvancedMode] = useState(false);
 
   useEffect(() => {
     // Validate the default content on component mount
@@ -138,15 +134,49 @@ const JDForm = ({ onResults }) => {
       if (result.success) {
         console.log('JDForm: API request successful');
         
-        // If server-side filtering is not implemented yet, apply client-side filtering
-        let filteredResults = result.data;
-        
-        // Check if we need to apply client-side filtering
-        if (!result.data || result.data.length === 0) {
-          console.log('JDForm: No results found after server filtering');
-        } else {
-          onResults(filteredResults);
+        // Parse the API response - it might be a string or already parsed object
+        let parsedData;
+        try {
+          if (typeof result.data.body === 'string') {
+            parsedData = JSON.parse(result.data.body);
+          } else if (result.data.body) {
+            parsedData = result.data.body;
+          } else {
+            parsedData = result.data;
+          }
+        } catch (parseError) {
+          console.error('Error parsing API response:', parseError);
+          parsedData = result.data;
         }
+        
+        // Extract results from the response
+        let resumeResults = [];
+        
+        if (parsedData.results && Array.isArray(parsedData.results)) {
+          resumeResults = parsedData.results.map(item => ({
+            resume_id: item.resume_id,
+            score: item.scores?.overall || 0,
+            skills: item.skills?.all || [],
+            matching_skills: item.skills?.matching || [],
+            missing_skills: item.skills?.missing || [],
+            experience: item.experience?.years || 'N/A',
+            positions: item.positions || [],
+            education: item.education || [],
+            companies: item.companies || []
+          }));
+        }
+        
+        // Include job info and skill gap analysis in the results
+        const processedResults = {
+          results: resumeResults,
+          jobInfo: parsedData.job_info || {},
+          skillGapAnalysis: parsedData.skill_gap_analysis || [],
+          totalResults: parsedData.total_results || resumeResults.length,
+          processingMetadata: parsedData.processing_metadata || {}
+        };
+        
+        // Send results to parent component
+        onResults(processedResults);
       } else {
         console.error('JDForm: API request failed:', result.message);
         
@@ -285,12 +315,12 @@ const JDForm = ({ onResults }) => {
       </Grid>
       
       <Paper elevation={0} sx={{ border: '1px solid #e0e0e0', p: 1, mb: 3 }}>
-        <ReactQuill
-          theme="snow"
-          value={jdContent}
-          onChange={handleJdChange}
-          modules={modules}
-          placeholder="Enter the job description here..."
+              <ReactQuill
+                theme="snow"
+                value={jdContent}
+                onChange={handleJdChange}
+                modules={modules}
+                placeholder="Enter the job description here..."
           style={{ minHeight: '300px', marginBottom: '40px' }}
         />
       </Paper>
@@ -302,17 +332,17 @@ const JDForm = ({ onResults }) => {
         >
           Save as Template
         </Button>
-        <Button
+              <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={isLoading || !isFormValid}
+                disabled={isLoading || !isFormValid}
           startIcon={isLoading && <CircularProgress size={20} color="inherit" />}
         >
           {isLoading ? 'Processing...' : 'Find Matching Resumes'}
-        </Button>
+              </Button>
       </Box>
     </Box>
   );
 };
 
-export default JDForm;
+export default JDForm; 

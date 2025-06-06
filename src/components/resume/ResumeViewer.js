@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, 
   Paper, 
@@ -57,13 +57,8 @@ const ResumeViewer = ({ resumeId, open, onClose }) => {
   const [candidateData, setCandidateData] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
 
-  useEffect(() => {
-    if (open && resumeId) {
-      loadResumeData();
-    }
-  }, [open, resumeId]);
-
-  const loadResumeData = async () => {
+  // Use useCallback to define the function
+  const loadResumeData = useCallback(async () => {
     setLoading(true);
     setError('');
     
@@ -91,7 +86,13 @@ const ResumeViewer = ({ resumeId, open, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [resumeId]); // Include resumeId in dependency array
+
+  useEffect(() => {
+    if (open && resumeId) {
+      loadResumeData();
+    }
+  }, [open, resumeId, loadResumeData]);
 
   const handleDownload = () => {
     if (resumeUrl) {

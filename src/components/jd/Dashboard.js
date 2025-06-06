@@ -9,10 +9,7 @@ import {
   Typography, 
   Container, 
   CircularProgress, 
-  Paper, 
-  Divider,
   Avatar,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -29,19 +26,15 @@ import {
 import { 
   ArrowUpward, 
   ArrowDownward,
-  MoreVert as MoreVertIcon,
   GetApp as DownloadIcon,
   Email as EmailIcon,
   Visibility as ViewIcon,
   Check as CheckIcon,
-  Description as DescriptionIcon,
   PeopleAlt as PeopleIcon,
   WorkOutline as WorkIcon,
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Dashboard as DashboardIcon,
-  BarChart as BarChartIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  BarChart as BarChartIcon
 } from '@mui/icons-material';
 
 import JDForm from './JDForm';
@@ -51,6 +44,8 @@ import ResumeViewer from '../resume/ResumeViewer';
 
 const Dashboard = () => {
   const [results, setResults] = useState(null);
+  const [jobInfo, setJobInfo] = useState(null);
+  const [skillGapAnalysis, setSkillGapAnalysis] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mainTabValue, setMainTabValue] = useState(0);
@@ -84,8 +79,18 @@ const Dashboard = () => {
   }, [navigate]);
 
   const handleResults = (data) => {
-    console.log('Dashboard: Received results from API');
-    setResults(data);
+    console.log('Dashboard: Received results from API', data);
+    
+    if (data.results) {
+      setResults(data.results);
+      setJobInfo(data.jobInfo);
+      setSkillGapAnalysis(data.skillGapAnalysis);
+    } else {
+      // Handle legacy format
+      setResults(data);
+      setJobInfo(null);
+      setSkillGapAnalysis([]);
+    }
   };
 
   const handleMainTabChange = (event, newValue) => {
@@ -285,86 +290,12 @@ const Dashboard = () => {
             {/* Results Section */}
             {results && (
               <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" mb={3}>
-                      Matching Resumes
-                    </Typography>
-                    <TableContainer>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Candidate</TableCell>
-                            <TableCell>Match Score</TableCell>
-                            <TableCell>Skills</TableCell>
-                            <TableCell>Experience</TableCell>
-                            <TableCell align="right">Actions</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {[1, 2, 3, 4, 5].map((item) => (
-                            <TableRow key={item} hover>
-                              <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                  <Avatar sx={{ mr: 2 }}>
-                                    {String.fromCharCode(64 + item)}
-                                  </Avatar>
-                                  <Box>
-                                    <Typography variant="subtitle2">
-                                      Candidate {item}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                      candidate{item}@example.com
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </TableCell>
-                              <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                  <Box sx={{ width: '100%', mr: 1 }}>
-                                    <LinearProgress 
-                                      variant="determinate" 
-                                      value={95 - (item * 5)} 
-                                      color={item < 3 ? "success" : item < 5 ? "primary" : "warning"} 
-                                      sx={{ height: 8, borderRadius: 5 }}
-                                    />
-                                  </Box>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {95 - (item * 5)}%
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell>
-                                <Stack direction="row" spacing={1}>
-                                  <Chip label="React" size="small" />
-                                  <Chip label="Node.js" size="small" />
-                                  {item < 3 && <Chip label="AWS" size="small" />}
-                                </Stack>
-                              </TableCell>
-                              <TableCell>
-                                {7 - item} years
-                              </TableCell>
-                              <TableCell align="right">
-                                <IconButton 
-                                  size="small"
-                                  onClick={() => handleViewResume(`resume-${item}`)}
-                                >
-                                  <ViewIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small">
-                                  <DownloadIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small">
-                                  <EmailIcon fontSize="small" />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </CardContent>
-                </Card>
+                <ResultsDisplay 
+                  results={results} 
+                  jobInfo={jobInfo}
+                  skillGapAnalysis={skillGapAnalysis}
+                  isLoading={false} 
+                />
               </Grid>
             )}
           </Grid>
@@ -386,4 +317,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Dashboard; 
